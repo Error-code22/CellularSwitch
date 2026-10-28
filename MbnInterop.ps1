@@ -160,6 +160,8 @@ namespace MbnApi
 
         public static string DataClassToString(uint dc)
         {
+            if ((dc & 0x80000000) != 0 && (dc & 0x3F) == 0)
+                return "CUSTOM (modem-specific — check the Windows network icon for the actual LTE / 3G label)";
             string s = "";
             if ((dc & 0x20) != 0) s += "LTE+";
             if ((dc & 0x10) != 0) s += "HSUPA+";
@@ -255,7 +257,11 @@ namespace MbnApi
                 if (r2 == (uint)MBN_REGISTER_STATE.HOME || r2 == (uint)MBN_REGISTER_STATE.ROAMING || r2 == (uint)MBN_REGISTER_STATE.PARTNER)
                 {
                     string[] regN = { "NONE", "DEREGISTERED", "SEARCHING", "HOME", "ROAMING", "PARTNER", "DENIED" };
-                    log.Add("Now registered as  : " + regN[(int)r2] + " on " + DataClassToString(c2));
+                    // this modem keeps re-selecting for a while after SetRegisterMode; give it extra settle time
+                    System.Threading.Thread.Sleep(10000);
+                    uint c3; reg.GetCurrentDataClass(out c3);
+                    log.Add("Registered as      : " + regN[(int)r2] + " on " + DataClassToString(c3));
+                    log.Add("Note: on this modem, confirm the active technology via the Windows network icon (shows LTE / 3G / H+).");
                     break;
                 }
             }

@@ -11,6 +11,15 @@ Force your laptop's cellular modem onto **3G / HSPA+** (great when local LTE is 
 
 On some carriers (e.g. Telkom SA), LTE towers are heavily oversubscribed while the 3G network has spare capacity — so "older" HSPA+ can be several times faster than LTE. Windows has **no built-in UI** to choose the radio technology. This tool uses `IMbnRegistration::SetRegisterMode` with a preferred data-class mask (UMTS/HSDPA/HSUPA, excluding LTE) and re-registers the modem.
 
+## Field results (Telkom SA, Fibocom L830-EB)
+
+| Technology (Windows network icon) | Measured download | Ping |
+|---|---|---|
+| LTE (congested) | ~4 Mbps | — |
+| **3G / DC-HSPA+ (via this tool)** | **~17 Mbps** | ~45 ms |
+
+The switch **works** — but on this modem the MBN data-class API reports `CUSTOM (0x80000000)` after any preference is set, so the tool's output can't tell you LTE vs 3G. The **Windows network flyout icon** (shows `LTE` / `3G` / `H+`) is the reliable indicator.
+
 ## What's in the box
 
 | File | Purpose |
@@ -43,7 +52,7 @@ The switch takes ~15–25 s (disconnect → re-register → reconnect). The pref
 ## Notes & limitations
 
 - The MBN API hints the *preferred* data classes; if the modem can't find any of them it falls back to the best available (per the API contract). Result can therefore vary by location.
-- Some modems report DC-HSPA+ as `MBN_DATA_CLASS_CUSTOM` (0x80000000) — the tool displays this as-is.
+- **Known firmware quirk (Fibocom L830-EB):** after any `SetRegisterMode` call, `GetCurrentDataClass` reports `CUSTOM (0x80000000)` regardless of the actual technology, and the "available classes" list is unreliable. Use the Windows network icon to confirm which technology you're on. The switch itself works as verified by speed tests.
 - Developed/tested on Windows 11 + Fibocom L830-EB. Feedback for other modems (Quectel, Sierra, Dell DW-series, Huawei...) is welcome.
 
 ## Roadmap
