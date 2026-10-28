@@ -57,9 +57,12 @@ The switch takes ~15–25 s (disconnect → re-register → reconnect). The pref
 
 ## Roadmap
 
+See [PLANS.md](PLANS.md) for the full plan (SMS, USSD, auto-switcher, blackout mode...). Highlights:
+
+- [x] v1.2 — Service watchdog: auto-recover when the network drops (load shedding)
 - [ ] SMS send/read via `IMbnSms` (works on AT-locked modems — PDU send/receive confirmed)
 - [ ] USSD dialer via `IMbnUssd`
-- [ ] Signal-strength display (`IMbnSignal`)
+- [ ] Auto-switcher: flip to 3G+ automatically when LTE gets congested
 
 ## License
 
