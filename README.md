@@ -52,7 +52,8 @@ The switch takes ~15–25 s (disconnect → re-register → reconnect). The pref
 ## Notes & limitations
 
 - The MBN API hints the *preferred* data classes; if the modem can't find any of them it falls back to the best available (per the API contract). Result can therefore vary by location.
-- **Known firmware quirk (Fibocom L830-EB):** after any `SetRegisterMode` call, `GetCurrentDataClass` reports `CUSTOM (0x80000000)` regardless of the actual technology, and the "available classes" list is unreliable. Use the Windows network icon to confirm which technology you're on. The switch itself works as verified by speed tests.
+- **Known firmware quirk (Fibocom L830-EB):** after any `SetRegisterMode` call, `GetCurrentDataClass` reports `CUSTOM (0x80000000)` for a while regardless of the actual technology, and the "available classes" list is unreliable. Use the Windows network icon to confirm which technology you're on. The switch itself works as verified by speed tests.
+- **Network scanning is firmware-blocked** on this OEM modem (results never arrive even when disconnected) — hence no "choose network" feature; the `scan` mode is kept for modems that do support it.
 - Developed/tested on Windows 11 + Fibocom L830-EB. Feedback for other modems (Quectel, Sierra, Dell DW-series, Huawei...) is welcome.
 
 ## Roadmap

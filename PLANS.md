@@ -29,8 +29,8 @@ Living document. Items are roughly in priority order; check things off as they l
 ### 4. Manual network selection ("blackout mode")
 - `SetRegisterMode(MANUAL, providerId, ...)` to force registration on a specific operator
 - Real use case: during load shedding, Telkom's LTE sites die early (weak battery backup) while 3G (which rides on MTN) stays up — being able to manually pick MTN/Vodacom could restore service
-- Needs a scan UI (`IMbnInterface::ScanNetwork` + `GetVisibleProviders`) to list available networks with their IDs
-- **Test during next blackout:** does 3G-only keep service? does manual MTN registration work?
+- **⚠️ Learned 2026-10-30:** `ScanNetwork`/`GetVisibleProviders` is **firmware-blocked** on the L830-EB (accepted while attached → `0xC0040002`-style refusal; disconnected → request OK but results never arrive). Windows' "Choose a cellular network" UI is hidden for the same reason. So manual mode must use *known* provider IDs (Telkom=65502, MTN=65510, Vodacom=65501) without a scan UI — test blind manual registration during the next blackout.
+- Also: `netsh mbn connect` syntax needs `connmode=name` for stored profiles.
 
 ### 5. Signal & cell display (`IMbnSignal`, `IMbnRadio`)
 - RSSI / error rate in the GUI

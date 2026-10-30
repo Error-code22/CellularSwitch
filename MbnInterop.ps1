@@ -148,6 +148,20 @@ namespace MbnApi
             if (hr < 0) Marshal.ThrowExceptionForHR(hr);
             return new object[] { iface, (IMbnRegistration)items[0], conn };
         }
+
+        // SIM-less mode: skips GetConnection (which fails with 0x80070490 when no SIM is inserted).
+        public static object[] OpenNoConnection()
+        {
+            Type t = Type.GetTypeFromCLSID(new Guid("BDFEE05B-4418-11DD-90ED-001C257CCFF1"));
+            object mgrObj = Activator.CreateInstance(t);
+            IMbnInterfaceManager mgr = (IMbnInterfaceManager)mgrObj;
+            IntPtr psa;
+            int hr = mgr.GetInterfaces(out psa);
+            if (hr < 0) Marshal.ThrowExceptionForHR(hr);
+            object[] items = SafeArrayUtil.ToObjectArray(psa);
+            if (items == null || items.Length == 0) throw new Exception("No Mobile Broadband interface found (is the modem on?)");
+            return new object[] { (IMbnInterface)items[0], (IMbnRegistration)items[0] };
+        }
     }
 
     public static class MbnTool
@@ -293,6 +307,77 @@ namespace MbnApi
         {
             if (pendingError != null) return "ERROR: " + pendingError.Message;
             return pendingResult;
+        }
+
+        // Network scan. This modem refuses scans while packet-attached (0xC0040002),
+        // so disconnect first, scan, then reconnect.
+        public static string Scan()
+        {
+            object[] o = MbnSession.Open();
+            IMbnInterface iface = (IMbnInterface)o[0];
+            IMbnConnection conn = (IMbnConnection)o[2];
+            MBN_READY_STATE ready; int hr = iface.GetReadyState(out ready);
+            if (hr < 0) Marshal.ThrowExceptionForHR(hr);
+            string[] readyN = { "OFF", "INITIALIZED", "SIM_NOT_INSERTED", "BAD_SIM", "FAILURE", "NOT_ACTIVATED", "DEVICE_LOCKED", "DEVICE_BLOCKED" };
+
+            // disconnect if attached
+            MBN_ACTIVATION_STATE act; string profile;
+            hr = conn.GetConnectionState(out act, out profile);
+            if (hr >= 0 && (act == MBN_ACTIVATION_STATE.ACTIVATED || act == MBN_ACTIVATION_STATE.ACTIVATING))
+            {
+                uint reqD; conn.Disconnect(out reqD);
+                for (int i = 0; i < 20; i++)
+                {
+                    System.Threading.Thread.Sleep(700);
+                    MBN_ACTIVATION_STATE a; string p;
+                    conn.GetConnectionState(out a, out p);
+                    if (a >= MBN_ACTIVATION_STATE.DEACTIVATED) break;
+                }
+            }
+
+            uint req;
+            hr = iface.ScanNetwork(out req);
+            if (hr < 0) return "ScanNetwork failed: 0x" + hr.ToString("X8");
+
+            string[] stateNames = { "NONE", "HOME", "FORBIDDEN", "PREFERRED", "VISIBLE", "REGISTERED", "PREF-MULTI" };
+            string result = null;
+            for (int i = 0; i < 30; i++)
+            {
+                System.Threading.Thread.Sleep(5000);
+                uint age; IntPtr psa;
+                hr = iface.GetVisibleProviders(out age, out psa);
+                if (hr < 0 || age == 0) continue;
+                try
+                {
+                    object[] provs = SafeArrayUtil.ToObjectArray(psa);
+                    var sb = new System.Text.StringBuilder();
+                    sb.AppendLine("Ready state: " + readyN[(int)ready]);
+                    sb.AppendLine("Visible providers (" + provs.Length + "):");
+                    foreach (object p in provs)
+                    {
+                        try
+                        {
+                            MBN_PROVIDER pv = (MBN_PROVIDER)p;
+                            string states = "";
+                            for (int b = 0; b < 7; b++) if ((pv.providerState & (1u << b)) != 0) states += stateNames[b] + "|";
+                            sb.AppendLine("  ID=" + pv.providerID + "  name='" + pv.providerName + "'  classes=0x" + pv.dataClass.ToString("X") + "  state=" + states.TrimEnd('|'));
+                        }
+                        catch (Exception ex) { sb.AppendLine("  <provider decode failed: " + ex.Message + ">"); }
+                    }
+                    result = sb.ToString();
+                    break;
+                }
+                catch { /* keep polling */ }
+            }
+
+            // reconnect
+            string prof = (profile != null && profile.Length > 0) ? profile : "7AD7456C-04CA-4A1D-8EA0-2E622DAC9765";
+            uint req3;
+            int hr3 = conn.Connect(MBN_CONNECTION_MODE.PROFILE, prof, out req3);
+            string tail = (hr3 >= 0) ? ("Reconnecting profile '" + prof + "'...") :
+                ("Reconnect note: run netsh mbn connect interface=\"Cellular\" name=\"" + prof + "\"");
+
+            return result ?? ("Scan timed out after 150s (no provider cache). " + tail);
         }
     }
 }
