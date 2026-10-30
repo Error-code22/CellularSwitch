@@ -13,12 +13,18 @@ On some carriers (e.g. Telkom SA), LTE towers are heavily oversubscribed while t
 
 ## Field results (Telkom SA, Fibocom L830-EB)
 
-| Technology (Windows network icon) | Measured download | Ping |
-|---|---|---|
-| LTE (congested) | ~4 Mbps | — |
-| **3G / DC-HSPA+ (via this tool)** | **~17 Mbps** | ~45 ms |
+Measured cellular-only (WiFi fully disconnected — see lesson below), 2026-10-30, evening:
 
-The switch **works** — but on this modem the MBN data-class API reports `CUSTOM (0x80000000)` after any preference is set, so the tool's output can't tell you LTE vs 3G. The **Windows network flyout icon** (shows `LTE` / `3G` / `H+`) is the reliable indicator.
+| Technology (Windows network icon) | Download | Ping |
+|---|---|---|
+| LTE (congested) | ~3 Mbps | 130–320 ms (bufferbloat) |
+| **3G / HSxPA (via this tool)** | **~4.2 Mbps** | **50–90 ms** |
+
+Both directions of the switch work (confirmed by latency + icon). At congested times, 3G beats LTE on *both* speed and latency.
+
+> **⚠️ Measurement lesson:** if WiFi is also connected, Windows may route speed tests over it, giving completely misleading numbers (we measured "17 Mbps 3G" that was actually WiFi, betrayed by its 45 ms ping). To benchmark the modem: turn WiFi off first, or watch the per-adapter graph in Task Manager.
+
+**Known firmware quirk:** after any `SetRegisterMode` call, the modem's MBN data-class report goes unreliable (`CUSTOM` / stale values) — the tool now says so explicitly. The Windows network icon is the ground truth.
 
 ## What's in the box
 

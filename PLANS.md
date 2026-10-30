@@ -21,8 +21,9 @@ Living document. Items are roughly in priority order; check things off as they l
 
 ### 3. Auto-switcher ("congestion pilot") — candidate for v2.0
 - Background watcher that speed-probes every N minutes (small download from a CDN)
-- If LTE throughput < threshold (e.g. 8 Mbps) for K consecutive probes → switch to 3G+
-- If on 3G+ and LTE becomes faster again → switch back
+- **Must bind the probe to the Cellular interface** (or require WiFi off) — otherwise it measures the wrong adapter, as happened to us on 2026-10-30
+- If LTE throughput < threshold for K consecutive probes → switch to 3G+; switch back when LTE recovers
+- Consider latency in the decision too: on 2026-10-30, congested LTE was 130–320 ms ping vs 50–90 ms on 3G
 - Hysteresis + cooldown to avoid flapping; log to CSV for later analysis
 - Runs from tray or hidden window
 
