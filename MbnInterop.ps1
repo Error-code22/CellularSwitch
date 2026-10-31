@@ -303,6 +303,27 @@ namespace MbnApi
             t.Start();
         }
 
+        // Diagnostics that work even with no active connection (e.g. "no service" / blackout).
+        public static string Diag()
+        {
+            object[] o = MbnSession.OpenNoConnection();
+            IMbnInterface iface = (IMbnInterface)o[0];
+            IMbnRegistration reg = (IMbnRegistration)o[1];
+            MBN_READY_STATE ready; int hr = iface.GetReadyState(out ready);
+            if (hr < 0) Marshal.ThrowExceptionForHR(hr);
+            uint regState; hr = reg.GetRegisterState(out regState);
+            if (hr < 0) Marshal.ThrowExceptionForHR(hr);
+            uint cur; hr = reg.GetCurrentDataClass(out cur);
+            if (hr < 0) cur = 0;
+            string provName; hr = reg.GetProviderName(out provName);
+            if (hr < 0) provName = "(none)";
+            string[] readyN = { "OFF", "INITIALIZED", "SIM_NOT_INSERTED", "BAD_SIM", "FAILURE", "NOT_ACTIVATED", "DEVICE_LOCKED", "DEVICE_BLOCKED" };
+            string[] regN = { "NONE", "DEREGISTERED", "SEARCHING", "HOME", "ROAMING", "PARTNER", "DENIED" };
+            return "Ready state      : " + readyN[(int)ready] + "\r\n"
+                 + "Register state   : " + regN[(int)regState] + "\r\n"
+                 + "Provider         : " + provName + "\r\n"
+                 + "Current tech     : 0x" + cur.ToString("X") + "  (0 = searching/no cell)";
+        }
         public static string PollSwitchResult()
         {
             if (pendingError != null) return "ERROR: " + pendingError.Message;

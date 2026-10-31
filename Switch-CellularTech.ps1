@@ -4,10 +4,10 @@
 #   .\Switch-CellularTech.ps1 3g       - prefer HSPA+/3G (disables LTE)   [brief disconnect]
 #   .\Switch-CellularTech.ps1 lte      - prefer LTE/4G (restores default) [brief disconnect]
 #   .\Switch-CellularTech.ps1 scan     - scan for visible networks (works without SIM)
-#   .\Switch-CellularTech.ps1 watch    - watchdog: auto-bounce radio when service is lost (e.g. load shedding)
+#   .\Switch-CellularTech.ps1 diag   - diagnose modem/SIM/registration state (works with no connection)
 param(
     [Parameter(Position=0)]
-    [ValidateSet('status','3g','lte','watch','scan')]
+    [ValidateSet('status','3g','lte','watch','scan','diag')]
     [string]$Mode = 'status'
 )
 $ErrorActionPreference = 'Stop'
@@ -17,6 +17,7 @@ switch ($Mode) {
     'status' { [MbnApi.MbnTool]::Status() }
     '3g'     { [MbnApi.MbnTool]::Switch($true) }
     'lte'    { [MbnApi.MbnTool]::Switch($false) }
+    'diag'   { [MbnApi.MbnTool]::Diag() }
     'scan'   { [MbnApi.MbnTool]::Scan() }
     'watch'  {
         Write-Output ("Watchdog started {0} - checking registration every 60s. Ctrl+C to stop." -f (Get-Date -Format 'HH:mm:ss'))
